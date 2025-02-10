@@ -1,0 +1,1180 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <unistd.h>
+#include <memory>
+// ILoginable Interface
+class ILoginable {
+public:
+    virtual void login() = 0; // Pure virtual function
+};
+
+
+// IReservable Interface
+class IReservable {
+public:
+    virtual void reserveSeat() = 0; // pvf
+    virtual void checkSeatStatus() = 0; // pvf
+};
+class Travel;
+// IProfitable Interface
+class IProfitable {
+public:
+    virtual double calculateDailyProfit() = 0; //pvf
+    virtual double calculateOverallProfit() = 0; //pvf
+     virtual std::string getname() const = 0;
+};
+// Trip Class
+class Trip {
+public:
+    std::string departureLocation;
+    std::string arrivalLocation;
+    std::string travelDate;
+    int availableSeats;
+    int reservedSeats;
+
+    // Constructor to initialize trip details
+    Trip(const std::string& departure, const std::string& arrival, const std::string& date, int seats)
+        : departureLocation(departure), arrivalLocation(arrival), travelDate(date), availableSeats(seats), reservedSeats(0) {}
+
+    // Display trip information
+    void display() const {
+        std::cout << "Trip Details:\n";
+        std::cout << "Departure: " << departureLocation << "\n";
+        std::cout << "Arrival: " << arrivalLocation << "\n";
+        std::cout << "Date: " << travelDate << "\n";
+        std::cout << "Available Seats: " << availableSeats << "\n";
+        std::cout << "Reserved Seats: " << reservedSeats << "\n";
+    }
+    std::string getDepartureLocation() const {
+        return departureLocation;
+    }
+
+    std::string getArrivalLocation() const {
+        return arrivalLocation;
+    }
+
+    std::string getTravelDate() const {
+        return travelDate;
+    }
+    // Yeni eklenen fonksiyonlar
+    std::string getDeparture() const {
+        return departureLocation;
+    }
+
+    std::string getArrival() const {
+        return arrivalLocation;
+    }
+
+    std::string getDate() const {
+        return travelDate;
+    }
+    int getTransportOption() const {
+    // Örnek: Eğer departureLocation içinde "Bus" geçiyorsa 1, "Train" geçiyorsa 2, "Airplane" geçiyorsa 3
+    if (departureLocation.find("Bus") != std::string::npos) {
+        return 1;  // Otobüs
+    } else if (departureLocation.find("Train") != std::string::npos) {
+        return 2;  // Tren
+    } else if (departureLocation.find("Airplane") != std::string::npos) {
+        return 3;  // Uçak
+    }
+
+    // Eğer hiçbiri uymuyorsa, varsayılan değeri döndür.
+    return 0;  // Varsayılan değer (örneğin, bilinmeyen bir taşıma aracı)
+}
+};
+
+// Vehicle Class
+class Vehicle {
+public:
+    virtual double calculateFuelCost() = 0; // Pure virtual function
+    virtual std::string getname() const=0;
+};
+
+
+
+// User Class implementing ILoginable
+class User : public ILoginable {
+private:
+    std::string username;
+    std::string password;
+    public:
+    virtual void login() = 0;
+        // Getter for username
+    std::string getUsername()const {
+        return username;
+    }
+
+    // Setter for username
+    void setUsername(const std::string& newUsername) {
+        username = newUsername;
+    }
+
+    // Getter for password
+    std::string getPassword()const {
+        return password;
+    }
+
+    // Setter for password
+    void setPassword(const std::string& newPassword) {
+        password = newPassword;
+    }
+
+    
+};
+struct CompanyInfo{
+ std::string companyName;
+    std::string username;
+    std::string password;
+    int vehicleCount;
+    int busCount;
+    int trainCount;
+    int airplaneCount;
+    std::vector<std::string> cities; // Şirketin hizmet verdiği şehirler
+    std::vector<std::string> routes;
+	
+};
+
+
+// Admin Class
+class Admin : public User {
+private:
+    std::vector<CompanyInfo> companies; // List of companies
+    double serviceFee = 1000.0; // Service fee
+
+public:
+Admin(const std::string& username, const std::string& password) {
+        setUsername(username);
+        setPassword(password);
+    }
+   
+    void login() override {
+        std::cout << "Admin login functionality.\n";
+    }
+
+    void displayCompanies() const {
+        std::cout << "Companies:\n";
+        for (const auto& company : companies) {
+           std::cout << "Company: " << company.companyName << ", Username: " << company.username
+           << ", Password: " << company.password << ", Vehicle Count: " << company.vehicleCount << "\n";
+        }
+    }
+    void addCompany(const CompanyInfo& company) {
+   
+    companies.push_back(company);
+    // Yeni eklenen şirketin araç sayılarını güncelle
+    for (auto& comp : companies) {
+        if (comp.companyName == company.companyName) {
+            comp.vehicleCount += company.busCount + company.trainCount + company.airplaneCount;
+            comp.busCount = company.busCount;
+            comp.trainCount = company.trainCount;
+            comp.airplaneCount = company.airplaneCount;
+            break;
+        }
+    }
+}
+
+void removeCompany(const std::string& companyName) {
+    auto it = std::remove_if(companies.begin(), companies.end(),
+      [companyName](const CompanyInfo& company) { return company.companyName == companyName; });
+
+    companies.erase(it, companies.end());
+}
+
+   
+   
+    void setServiceFee(double fee) {
+        serviceFee = fee;
+    }
+     const std::vector<CompanyInfo>& getCompanies() const {
+        return companies;
+    }
+};
+
+
+//  Company Class implementing IProfitable
+class Company : public IProfitable {
+private:
+    std::vector<Vehicle*> vehicles; // List of vehicles
+    std::vector<Trip> trips; // List of trips
+ 	std::vector<std::string> routes; // Firmaya ait güzergahlar
+public:
+	Company() = default;
+
+    // Constructor with parameters
+   Company(const std::string& name, const std::string& username, const std::string& password, int vehicleCount, int busCount, int trainCount, int airplaneCount, const std::vector<std::string>& routes)
+	: IProfitable(), vehicles(), trips(),routes(routes) {
+       std::vector<std::string> cities = {"istanbul", "Ankara", "Kocaeli", "Bilecik", "Eskişehir", "Konya"};
+
+    }
+    std::string getname() const override {
+        return "Company";
+    }
+    double calculateDailyProfit() override {
+        // Burada günlük karı hesaplayabilirsiniz.
+        return 0.0; // Örnek amaçlı bir değer döndürülüyor.
+    }
+
+    double calculateOverallProfit() override {
+        // Burada genel karı hesaplayabilirsiniz.
+        return 0.0; // Örnek amaçlı bir değer döndürülüyor.
+    }
+
+    // Araç ekleme
+    void addVehicle(const std::string& vehicleName, Vehicle* vehicle) {
+        vehicles.push_back(vehicle);
+    }
+
+    // Araç çıkarma
+    void removeVehicle(const std::string& vehicleName) {
+        auto it = std::remove_if(vehicles.begin(), vehicles.end(),
+            [vehicleName](const Vehicle* vehicle) { return vehicle->getname() == vehicleName; });
+
+        vehicles.erase(it, vehicles.end());
+    }
+    // Sefer ekleme
+    void addTrip(const Trip& trip) {
+        trips.push_back(trip);
+    }
+
+    // Sefer çıkarma
+    void removeTrip(const std::string& departure, const std::string& arrival, const std::string& date) {
+        auto it = std::remove_if(trips.begin(), trips.end(),
+            [departure, arrival, date](const Trip& trip) {
+                return trip.getDepartureLocation() == departure &&
+                       trip.getArrivalLocation() == arrival &&
+                       trip.getTravelDate() == date;
+            });
+
+        trips.erase(it, trips.end());
+    }
+
+    // Getter for vehicles
+    const std::vector<Vehicle*>& getVehicles() const {
+        return vehicles;
+    }
+
+    // Getter for trips
+    const std::vector<Trip>& getTrips() const {
+        return trips;
+    }
+   
+    // Getter for routes
+    const std::vector<std::string>& getRoutes() const {
+        return routes;
+    }
+    
+    void setRoutes(const std::vector<std::string>& newRoutes) {
+    routes = newRoutes;
+}
+};
+
+Company* findCompany(const std::string& username, const std::string& password, Admin& admin) {
+    for (auto& company : admin.getCompanies()) {
+        if (company.username == username && company.password == password) {
+            return new Company(company.companyName, company.username, company.password, company.vehicleCount, company.busCount, company.trainCount, company.airplaneCount,company.routes);
+        }
+    }
+    return nullptr;
+}
+
+
+
+class Passenger {
+public:
+    std::string name;
+    std::string surname;
+    std::string tcNumber;
+    std::string birthdate;
+};
+
+
+// Bus Class
+class Bus : public Vehicle {
+public:
+    double calculateFuelCost() override {
+        std::cout << "Otobus icin ozel yakıt maliyeti.\n";
+        return 100.0; // Return a dummy value for demonstration
+    }
+    std::string getname()const override{
+    	return "Bus";
+	}
+};
+
+// Train Class
+class Train : public Vehicle {
+public:
+    double calculateFuelCost() override {
+        std::cout << "Tren icin ozel yakit maliyeti.\n";
+        return 150.0; // Return a dummy value for demonstration
+    }
+    std::string getname()const override{
+    	return "Train";
+	}
+};
+
+// Airplane Class
+class Airplane : public Vehicle {
+public:
+    double calculateFuelCost() override {
+        std::cout << "ucak icin ozel yakıt maliyeti.\n";
+        return 200.0; // Return a dummy value for demonstration
+    }
+    std::string getname()const override{
+    	return "Airplane";
+	}
+    
+};
+
+
+class Travel {
+private:
+    std::vector<Trip> trips;
+
+public:
+    // Add a new trip to the system
+    void addTrip(const Trip& trip) {
+        trips.push_back(trip);
+    }
+
+    // Find available trips based on user input
+    std::vector<Trip> findAvailableTrips(const std::string& departure, const std::string& arrival, const std::string& date, int transportOption) const {
+        std::vector<Trip> availableTrips;
+        for (const auto& trip : trips) {
+        // Seçilen taşıma aracına ve diğer kriterlere göre filtreleme
+        if (trip.getDeparture() == departure &&
+            trip.getArrival() == arrival &&
+            trip.getDate() == date &&
+            trip.getTransportOption() == transportOption) {
+            availableTrips.push_back(trip);
+        }
+    }
+        return availableTrips;
+    }
+
+    // Display available seats for a specific trip
+    void displayAvailableSeats(const Trip& trip) const {
+        trip.display();
+        std::cout << "Available Seats: " << trip.availableSeats - trip.reservedSeats << "\n";
+    }
+
+    // Reserve seats for a trip
+    void reserveSeats(Trip& trip, int numSeats) {
+        if (numSeats <= trip.availableSeats - trip.reservedSeats) {
+            trip.reservedSeats += numSeats;
+            std::cout << numSeats << " seats reserved successfully.\n";
+        } else {
+            std::cout << "Not enough available seats.\n";
+        }
+    }
+};
+
+
+// Personnel Class
+class Personnel {
+protected:
+    std::string firstName;
+    std::string lastName;
+
+public:
+    Personnel(const std::string& firstName, const std::string& lastName)
+        : firstName(firstName), lastName(lastName) {}
+
+    virtual double calculateSalary() = 0; // Pure virtual function
+};
+
+// Customer Class
+class Customer : public User {
+public:
+   // Parametreli constructor
+    Customer(const std::string& username, const std::string& password) {
+        setUsername(username);
+        setPassword(password);
+    }
+
+    void login() override {
+        std::cout << "Museri girisi fonksiyonları:\n";
+    }
+
+    void display() {
+        std::cout << "Müşteri özel bilgisi.\n";
+    }
+};
+
+// Reservation Class
+class Reservation {
+public:
+    void display() {
+        std::cout << "Rezervasyon ozel bilgisi.\n";
+    }
+};
+void displayTransportOptions() {
+        std::cout << "Lutfen bir tasima araci secin:\n";
+        std::cout << "1. Otobus\n";
+        std::cout << "2. Tren\n";
+        std::cout << "3. Ucak\n";
+    }
+
+// Transport Class implementing IReservable
+class Transport : public IReservable {
+public:
+    void reserveSeat() override {
+        std::cout << "Transport reserve seat functionality.\n";
+    }
+    void checkSeatStatus() override {
+        std::cout << "Transport check seat status functionality.\n";
+    }
+};
+
+class UserPanel {//kullanici paneli icin
+public:
+    void start(User& user, const Travel& travel,Admin& admin) {
+        std::cout << "Kullanici Paneli\n";
+        
+        
+ 
+        // Kalkış noktası, varış noktası ve seyahat tarihi seçimi
+        std::string departure, arrival, date;
+        std::cout << "Kalkis noktasini girin: ";
+        std::cin >> departure;
+        std::cout << "Varis noktasini girin: ";
+        std::cin >> arrival;
+        std::cout << "Seyahat tarihini girin (format: gun-ay-yil): ";
+        std::cin >> date;
+        
+displayTransportOptions();
+int transportOption;
+std::cin >> transportOption;
+
+switch (transportOption) {
+    case 1:
+        // Otobus seçildi
+        // Otobus işlemleri burada gerçekleştirilebilir
+        break;
+    case 2:
+        // Tren seçildi
+        // Tren işlemleri burada gerçekleştirilebilir
+        break;
+    case 3:
+        // Uçak seçildi
+        // Uçak işlemleri burada gerçekleştirilebilir
+        break;
+    default:
+        std::cout << "Gecersiz taşıma araci secimi.\n";
+        return;
+}
+        // Kullanıcıya uygun seferleri gösterme
+        std::vector<Trip> availableTrips = travel.findAvailableTrips(departure, arrival, date,transportOption);
+        displayAvailableTrips(availableTrips);
+
+        // Kullanıcının seçtiği sefer
+        int selectedTripIndex;
+        std::cout << "Secmek istediginiz seferin numarasini girin: ";
+        std::cin >> selectedTripIndex;
+
+        if (selectedTripIndex >= 0 && selectedTripIndex < availableTrips.size()) {
+            const Trip& selectedTrip = availableTrips[selectedTripIndex];
+
+            // Seçilen seferin koltuk durumlarını gösterme
+            travel.displayAvailableSeats(selectedTrip);
+
+            // Firma seçimi
+            std::string selectedCompany;
+            std::cout << "Gitmek istediginiz firmanin adini girin: ";
+            std::cin >> selectedCompany;
+
+            // Kullanıcının seçtiği firma
+            const Company* selectedCompanyPtr = findCompany(selectedCompany, "", admin);
+
+            if (selectedCompanyPtr != nullptr) {
+                // Seçilen firmanın seçilen seferdeki koltuk durumlarını gösterme
+                
+                displayCompanySeats(selectedCompanyPtr, selectedTrip,admin);
+
+                // Yolcu sayısı belirleme
+                int passengerCount;
+                std::cout << "Yolcu sayisini girin: ";
+                std::cin >> passengerCount;
+
+                // Yolcu bilgilerini toplama
+                std::vector<Passenger> passengers;
+                for (int i = 0; i < passengerCount; ++i) {
+                    Passenger passenger;
+                    std::cout << "Yolcu " << i + 1 << " bilgilerini girin:\n";
+                    std::cout << "Ad: ";
+                    std::cin >> passenger.name;
+                    std::cout << "Soyad: ";
+                    std::cin >> passenger.surname;
+                    std::cout << "TC Kimlik Numarasi: ";
+                    std::cin >> passenger.tcNumber;
+                    std::cout << "Dogum Tarihi (format:son 2 yil-ay-gun): ";
+                    std::cin >> passenger.birthdate;
+                    passengers.push_back(passenger);
+                }
+
+                // Ödeme işlemi
+                performPayment(selectedCompanyPtr, selectedTrip, passengers,admin);
+
+                delete selectedCompanyPtr; // Bellek temizleme
+            } else {
+                std::cout << "Gecersiz firma adi.\n";
+            }
+        } else {
+            std::cout << "Gecersiz sefer numarasi.\n";
+        }
+    }
+     // Kullanıcıya uygun seferleri gösterme
+  void displayAvailableTrips(const std::vector<Trip>& availableTrips) const {
+    std::cout << "Mevcut Seferler:\n";
+
+    for (size_t i = 0; i < availableTrips.size(); ++i) {
+        std::cout << i << ". ";
+        availableTrips[i].display();
+        std::cout << "\n";
+    }
+}
+void displayAvailableTrips(const Company* company) const {
+    std::cout << "Firma " << company->getname() << ", Mevcut Seferler:\n";
+
+    const std::vector<Trip>& availableTrips = company->getTrips();
+    for (size_t i = 0; i < availableTrips.size(); ++i) {
+        std::cout << i << ". ";
+        availableTrips[i].display();
+        std::cout << "\n";
+    }
+}
+
+
+
+private:
+   
+
+    // Seçilen firmanın seçilen seferdeki koltuk durumlarını gösterme
+    void displayCompanySeats(const Company* company, const Trip& trip,const Admin& admin) const {
+        std::cout << "Firma " << company->getname() << ", Sefer Detaylari:\n";
+        trip.display();
+        std::cout << "Bos Koltuklar: " << trip.availableSeats - trip.reservedSeats << "\n";
+        std::cout << "Rezerve Edilmis Koltuklar: " << trip.reservedSeats << "\n";
+        displayCompanyInfo(company, admin);
+    }
+
+    // Ödeme işlemi
+    void performPayment(const Company* company, const Trip& trip, const std::vector<Passenger>& passengers,const Admin& admin) const {
+        // Ödeme işlemleri burada gerçekleştirilebilir
+        // Bu örnek için sadece ödeme başarılı mesajı yazdırılmıştır
+        std::cout << "Odeme basariyla tamamlandi. Rezervasyon bilgileri:\n";
+        std::cout << "Firma: " << company->getname() << "\n";
+        std::cout << "Sefer Detaylari:\n";
+        trip.display();
+        std::cout << "Yolcu Bilgileri:\n";
+        for (const auto& passenger : passengers) {
+            std::cout << "Ad: " << passenger.name << ", Soyad: " << passenger.surname
+                      << ", TC Kimlik Numarasi: " << passenger.tcNumber << ", Dogum Tarihi: " << passenger.birthdate << "\n";
+        }
+         displayCompanyInfo(company, admin);
+    }
+   // Şirketin araçlarını ve seferlerini gösterme
+    void displayCompanyInfo(const Company* company, const Admin& admin) const {
+        // Admin sınıfındaki displayCompanies fonksiyonunu kullanarak şirket bilgilerini gösterme
+     admin.displayCompanies();
+    }
+
+};
+
+
+
+int main() {
+	
+	// Şehir listesi
+    std::vector<std::string> cities = {"İstanbul", "Ankara", "Kocaeli", "Bilecik", "Eskişehir", "Konya"};
+    // Firma bilgileri
+    std::vector<CompanyInfo> companyInfos = {
+       {"A", "usernameA", "passwordA", 5, 0, 0, 0, {"İstanbul", "Ankara", "Kocaeli", "Bilecik", "Eskişehir", "Konya"}, {"Demiryolu 1", "Demiryolu 2"}},
+        {"B", "usernameB", "passwordB", 3, 0, 0, 0, {"İstanbul", "Kocaeli"}, {"Karayolu 1", "Karayolu 2"}},
+        {"C", "usernameC", "passwordC", 7, 0, 0, 0, {"İstanbul", "Konya", "Ankara"}, {"Karayolu 3", "Havayolu 1"}},
+        {"D", "usernameD", "passwordD", 2, 0, 0, 0, {"İstanbul", "Kocaeli", "Bilecik", "Eskişehir"}, {"Demiryolu 1"}},
+        {"F", "usernameF", "passwordF", 4, 0, 0, 0, {"İstanbul", "Ankara"}, {"Havayolu 1", "Havayolu 2"}}
+    };
+    
+    // Firmaları oluştur
+    std::vector<Company*> companies;
+    for (const auto& info : companyInfos) {
+        Company* company = new Company(info.companyName, info.username, info.password, info.vehicleCount, info.busCount, info.trainCount, info.airplaneCount, info.routes);//sondaki cities info.routes oldu
+        companies.push_back(company);
+    }
+     // Firmanın güzergah bilgilerini ayarla
+    
+    for (const auto& info : companyInfos) {
+        Company* company = new Company(info.companyName, info.username, info.password, info.vehicleCount, info.busCount, info.trainCount, info.airplaneCount,info.routes);
+        company->setRoutes(info.routes);
+        companies.push_back(company);
+    }
+
+    
+    
+    // Sefer bilgileri
+    std::vector<Trip> trips = {
+        {"İstanbul", "Kocaeli", "2023-12-10", 50},
+        {"Bilecik", "Eskişehir", "2023-12-11", 40},
+        {"Ankara", "Eskişehir", "2023-12-12", 30},
+    // ... (diğer seferler)
+    };
+
+    
+    // Firmalara seferleri ekle
+    for (auto* company : companies) {
+        for (const auto& trip : trips) {
+            if (std::find(company->getRoutes().begin(), company->getRoutes().end(), trip.getDeparture()) !=
+                company->getRoutes().end() &&
+                std::find(company->getRoutes().begin(), company->getRoutes().end(), trip.getArrival()) !=
+                company->getRoutes().end()) {
+                company->addTrip(trip);
+            }
+        }
+    }
+    
+    
+    
+    
+    
+Admin admin("admin", "admin123");
+    Customer customer("customer", "customer123");
+    std::string username, password, companyName;
+    double serviceFee;
+Travel travel;UserPanel userPanel; 
+    while (true) {
+        sleep(3);
+        system("cls");
+        std::cout << "Lutfen bir panel secin:\n";
+        std::cout << "1. Admin Paneli\n";
+        std::cout << "2. Firma Paneli\n";
+        std::cout << "3. Musteri Paneli\n";
+        std::cout << "4. Cikis\n";
+
+        int choice;
+        std::cin >> choice;
+
+        switch (choice) {
+            case 1: {
+                std::cout << "Admin Kullanici adinizi girin: ";
+                std::cin >> username;
+                std::cout << "Admin Sifrenizi girin: ";
+                std::cin >> password;
+                if (username == admin.getUsername() && password == admin.getPassword()) {
+                    admin.login();
+                    std::cout << "Admin paneline giris yapildi.\n";
+
+                    std::cout << "Yapmak istediginiz islemi secin:\n";
+                    std::cout << "1. Mevcut firmalari goruntule\n";
+                    std::cout << "2. Yeni firma kaydi yap\n";
+                    std::cout << "3. Firma kaydi sil\n";
+                    std::cout << "4. Hizmet bedelini belirle\n";
+
+                    int adminChoice;
+                    std::cin >> adminChoice;
+
+                    switch (adminChoice) {
+                        case 1:
+                            admin.displayCompanies();
+                            break;
+                        case 2: {
+                            CompanyInfo newCompany;
+                            std::cout << "Yeni firma adini girin: ";
+                            std::cin >> newCompany.companyName;
+                            std::cout << "Yeni kullanici adini girin: ";
+                            std::cin >> newCompany.username;
+                            std::cout << "Yeni sifreyi girin: ";
+                            std::cin >> newCompany.password;
+                           // Arac sayilarini belirle
+							std::cout << "Bus sayisini girin: ";
+							std::cin >> newCompany.busCount;
+							std::cout << "Train sayisini girin: ";
+							std::cin >> newCompany.trainCount;
+							std::cout << "Airplane sayisini girin: ";
+							std::cin >> newCompany.airplaneCount;
+
+
+                            admin.addCompany(newCompany);
+                            break;
+                        }
+                        case 3:
+                            // firma silme işlemi eklenmeli
+                           	std::cout << "Silinecek firma adini girin: ";
+                            
+                            std::cin >> companyName;
+                            admin.removeCompany(companyName);
+                            break;std::cout<<"deneme:";
+						
+                        case 4: {
+                            std::cout << "Yeni hizmet bedelini girin: ";
+                            double serviceFee;
+                            std::cin >> serviceFee;
+                            admin.setServiceFee(serviceFee);
+                            break;
+                        }
+                        default:
+                            std::cout << "Gecersiz secim, lutfen tekrar deneyin.\n";
+                            break;
+                    }
+                } else {
+                    std::cout << "Hatali kullanici adi veya sifre.\n";
+                }
+                break;
+            }
+            case 2: {
+                std::cout << "Firma Kullanici adinizi girin: ";
+                std::cin >> username;
+                std::cout << "Firma Sifrenizi girin: ";
+                std::cin >> password;
+
+                // Burada, kullanıcının girdiği kullanıcı adı ve şifreye sahip bir firma bulunmalıdır.
+                // Bu firma, admin tarafından daha önce oluşturulmuş olmalıdır.
+                // Bu örnekte, 'company' bu firmayı temsil eder.
+                Company* company = findCompany(username, password, admin);
+
+                if (company != nullptr) {
+                    std::cout << "Firma paneline giris yapildi.\n";
+
+                    std::cout << "Yapmak istediginiz islemi secin:\n";
+                    std::cout << "1. Arac ekle\n";
+                    std::cout << "2. Arac cikar\n";
+                    std::cout << "3. Sefer ekle\n";
+                    std::cout << "4. Sefer cikar\n";
+                    std::cout << "5. Gunluk kar hesapla\n";
+
+                    int companyChoice;
+                    std::cin >> companyChoice;
+
+                    switch (companyChoice) {
+                        case 1:
+                            // Arac ekleme işlemi
+                            {
+                               std::string vehicleType;
+								std::cout << "Eklenecek aracin turunu secin (Bus/Train/Airplane): ";
+								std::cin >> vehicleType;
+
+								Vehicle* newVehicle = nullptr;
+								if (vehicleType == "Bus") {
+   								 newVehicle = new Bus();
+								} else if (vehicleType == "Train") {
+    							newVehicle = new Train();
+								} else if (vehicleType == "Airplane") {
+  								  newVehicle = new Airplane();
+								} else {
+    							std::cout << "Gecersiz arac turu.\n";
+   						 // Hatalı giriş durumunda işlemleri burada yönetebilirsiniz.
+								}
+
+								if (newVehicle != nullptr) {
+    							std::string vehicleName;
+    							std::cout << "Eklenecek aracin adini girin: ";
+   							    std::cin >> vehicleName;
+   							    company->addVehicle(vehicleName, newVehicle);
+   							    std::cout << "Arac eklendi.\n";
+                            }
+                            break;
+                        }
+                        case 2:
+                            // Arac çıkarma işlemi
+                            {
+                                std::string vehicleName;
+                                std::cout << "Cikarilacak aracin adini girin: ";
+                                std::cin >> vehicleName;
+                                company->removeVehicle(vehicleName);
+                                std::cout << "Arac cikarildi.\n";
+                            }
+                            break;
+                        case 3:
+                            // Sefer ekleme işlemi
+                            {
+                                std::string departure, arrival, date;
+                                int seats;
+                                std::cout << "Seferin kalkis yerini girin: ";
+                                std::cin >> departure;
+                                std::cout << "Seferin varis yerini girin: ";
+                                std::cin >> arrival;
+                                std::cout << "Seferin tarihini girin: ";
+                                std::cin >> date;
+                                std::cout << "Seferin koltuk sayisini girin: ";
+                                std::cin >> seats;
+                                Trip newTrip(departure, arrival, date, seats);
+                                company->addTrip(newTrip);
+                                std::cout << "Sefer eklendi.\n";
+                            }
+                            break;
+                        case 4:
+                            // Sefer çıkarma işlemi
+                            {
+                                std::string departure, arrival, date;
+                                std::cout << "Cikarilacak seferin kalkis yerini girin: ";
+                                std::cin >> departure;
+                                std::cout << "Cikarilacak seferin varis yerini girin: ";
+                                std::cin >> arrival;
+                                yeniden:
+                                std::cout << "Cikarilacak seferin tarihini girin: ";
+                                std::cin >> date;
+                                company->removeTrip(departure, arrival, date);
+                                std::cout << "Sefer cikarildi.\n";
+                            }
+                            break;
+                        case 5:
+                            // Günlük kar hesaplama işlemi
+                            {
+                                double dailyProfit = company->calculateDailyProfit();
+                                std::cout << "Günlük Kar: " << dailyProfit << " TL\n";
+                            }
+                            break;
+                        default:
+                            std::cout << "Gecersiz secim, lutfen tekrar deneyin.\n";
+                            break;
+                    }
+                    delete company;
+                } else {
+                    std::cout << "Hatali kullanici adi veya sifre.\n";
+                }
+                break;
+            }
+            case 3:
+                // Kullanıcı paneli herhangi bir üyeliğe gerek yok
+                std::cout << "Kullanici paneli secildi, uyelik gerektirmez.\n";sleep(2);
+                userPanel.start(customer, travel,admin);
+              // Kullanıcının seçtiği şirket
+    const Company* selectedCompanyPtr = findCompany(username, password, admin);
+
+    if (selectedCompanyPtr != nullptr) {
+        userPanel.displayAvailableTrips(selectedCompanyPtr);
+        // ... diğer işlemler ...
+        delete selectedCompanyPtr; // Bellek temizleme
+    } else {
+        std::cout << "Hatali kullanici adi veya sifre.\n";
+    }
+    break;
+    
+  
+           
+           
+        }
+    }
+	
+	
+	
+	
+	
+
+    return 0;//devamı baglayamadıgım kodlar
+}
+/*
+#include <iostream> 
+#include <cstdlib> 
+#include <cstring> 
+
+// Define a structure to store bus information 
+struct Bus { 
+	int servis_no; 
+	char bas_noktasi[50]; 
+	char varis_noktasi[50]; 
+	int top_koltuk; 
+	int bos_koltuk; 
+	float ucret; 
+}; 
+
+// Define a structure to store passenger information 
+struct Passenger { 
+	char isim[50]; 
+	int yas; 
+	int koltuk_numarasi; 
+	int servis_no; 
+}; 
+
+// Define a structure to store user Hesap information 
+struct User { 
+	char kullanici_adi[50]; 
+	char sifre[50]; 
+}; 
+
+// Function to display the main menu 
+void displayMainMenu() 
+{ 
+	std::cout << "\t \t----- Otobus rezervasyon  Sistemi----- \n \n"; 
+	std::cout << "1. Giris\n"; 
+	std::cout << "2. Cikis\n"; 
+	std::cout << "Secim numaraniz: "; 
+} 
+
+// Function to display the user menu 
+void displayUserMenu() 
+{ 
+	std::cout << "\n\n\t \t----- Kullanici Menusu -----\n \n"; 
+	std::cout << "1. Bilet satin al.\n"; 
+	std::cout << "2. Bileti iptal et.\n"; 
+	std::cout << "3. Otobusteki bilet durumu:\n"; 
+	std::cout << "4. Cikis\n"; 
+	std::cout << "Giris  secimin: "; 
+} 
+
+// Function to perform user Hesap 
+int loginUser(User users[], int numUsers, 
+			char kullanici_adi[], char sifre[]) 
+{ 
+	for (int i = 0; i < numUsers; i++) { 
+		if (strcmp(users[i].kullanici_adi, kullanici_adi) == 0 
+			&& strcmp(users[i].sifre, sifre) == 0) { 
+			return i; // Return the index of the logged-in 
+					// user 
+		} 
+	} 
+	return -1; // Return -1 if Hesap fails 
+} 
+
+// Function to book a ticket 
+// Function to book a ticket 
+void bookTicket(Bus buses[], int numBuses, 
+				Passenger passengers[], 
+				int* numPassengers, int userId) 
+{ 
+	std::cout << "\n (101-102-103)Otobus numarasi girisi : "; 
+	int servis_no; 
+	std::cin >> servis_no; 
+
+	// Find the bus with the given servis_no 
+	int busIndex = -1; 
+	for (int i = 0; i < numBuses; i++) { 
+		if (buses[i].servis_no == servis_no) { 
+			busIndex = i; 
+			break; 
+		} 
+	} 
+
+	if (busIndex == -1) { 
+		std::cout << "Otobus ile otobus no: " << servis_no << " bulunamadi.\n"; 
+	} 
+	else if (buses[busIndex].bos_koltuk == 0) { 
+		std::cout << "Otobus tam dolu uzgunuz...\n"; 
+	} 
+	else { 
+		std::cout << "Giris uyesinin isim: "; 
+		std::cin >> passengers[*numPassengers].isim; 
+
+		std::cout << "Giris uyesinin yas: "; 
+		std::cin >> passengers[*numPassengers].yas; 
+
+        // Ask for seat number
+        std::cout << "Giris koltuk Numarasi: ";
+        std::cin >> passengers[*numPassengers].koltuk_numarasi;
+
+		// Update the passenger's bus number 
+		passengers[*numPassengers].servis_no = servis_no; 
+
+		// Update available seats 
+		buses[busIndex].bos_koltuk--; 
+
+		std::cout << "Bilet kayiti basarili!\n"; 
+		(*numPassengers)++; 
+		sleep(2);
+		system("cls");
+	} 
+} 
+
+
+// Function to cancel a ticket 
+void cancelTicket(Bus buses[], int numBuses, 
+				Passenger passengers[], 
+				int* numPassengers, int userId) 
+{ 
+	std::cout << "\nGiris uye isim: "; 
+	char isim[50]; 
+	std::cin >> isim; 
+
+	int found = 0; 
+	for (int i = 0; i < *numPassengers; i++) { 
+		if (strcmp(passengers[i].isim, isim) == 0 
+			&& passengers[i].servis_no 
+				== buses[userId].servis_no) { 
+			// Increase available seats 
+			int busIndex = -1; 
+			for (int j = 0; j < numBuses; j++) { 
+				if (buses[j].servis_no 
+					== passengers[i].servis_no) { 
+					busIndex = j; 
+					break; 
+				} 
+			} 
+			buses[busIndex].bos_koltuk++; 
+
+			// Remove the passenger entry 
+			for (int j = i; j < (*numPassengers) - 1; j++) { 
+				passengers[j] = passengers[j + 1]; 
+			} 
+			(*numPassengers)--; 
+			found = 1; 
+			std::cout << "Bilet iptali basarili!\n"; 
+			break; 
+		} 
+	} 
+	if (!found) { 
+		std::cout << "uye  isim " << isim << " bulunamadi "
+			"bus.\n"; 
+	} 
+} 
+
+// Function to check bus status 
+
+void checkBusStatus(Bus buses[], int numBuses) 
+{ 
+    for(int i = 0; i < numBuses; i++) {
+        std::cout << "\nOtobus no: " << buses[i].servis_no << "\n"; 
+        std::cout << "Baslangic noktasi: " << buses[i].bas_noktasi << "\n"; 
+        std::cout << "Varis noktasi: " << buses[i].varis_noktasi << "\n"; 
+        std::cout << "Toplam koltuk: " << buses[i].top_koltuk << "\n"; 
+        std::cout << "Musait koltuk: " << buses[i].bos_koltuk << "\n";
+        std::cout << "Ucret: " << buses[i].ucret << "\n"; 
+        sleep(3);
+        system("cls");
+    }
+} 
+
+
+int main() 
+{ 
+    // Initialize user data 
+    User users[5] = { 
+        { "user1", "password1" }, { "user2", "password2" }, 
+        { "user3", "password3" }, { "user4", "password4" }, 
+        { "user5", "password5" }, 
+    }; 
+    int numUsers = 5; 
+  
+    // Initialize bus data 
+    Bus buses[3] = { 
+        { 101, "City A", "City B", 50, 50, 25.0 }, 
+        { 102, "City C", "City D", 40, 40, 20.0 }, 
+        { 103, "City E", "City F", 30, 30, 15.0 }, 
+    }; 
+    int numBuses = 3; 
+  
+    Passenger passengers[500]; // Array to store passenger information 
+    int numPassengers = 0; // Number of passengers 
+  
+    int loggedInUserId = -1; // Index of the logged-in user 
+  
+    while (1) { 
+        if (loggedInUserId == -1) { 
+            displayMainMenu(); 
+            int choice; 
+            std::cin >> choice; 
+  
+            if (choice == 1) { 
+                char kullanici_adi[50]; 
+                char sifre[50]; 
+  
+                std::cout << "Giris kullanici_adi: "; 
+                std::cin >> kullanici_adi; 
+                std::cout << "Giris sifre: "; 
+                std::cin >> sifre; 
+  
+                loggedInUserId = loginUser( 
+                    users, numUsers, kullanici_adi, sifre); 
+                if (loggedInUserId == -1) { 
+                    std::cout << "Hesap hatali. Lutfen kontrol kullanici_adi and sifre.\n\n"; 
+                    sleep(2);
+                    system("cls");
+                } 
+                else { 
+                    std::cout << "Hesap Basarili. Hosgeldiniz, " << kullanici_adi << "!\n"; 
+                   sleep(2);
+                   system("cls");
+                } 
+            } 
+            else if (choice == 2) { 
+                std::cout << "Programdan cikiliyor.\n"; 
+                sleep(3);
+                system("cls");return 0;
+                break; 
+            } 
+            else { 
+                std::cout << "Gecersiz secim.Lutfen tekrar deneyin.\n"; 
+            } 
+        } 
+        else { 
+            displayUserMenu(); 
+            int userChoice; 
+            std::cin >> userChoice; 
+  
+            switch (userChoice) { 
+            case 1: 
+                bookTicket(buses, numBuses, passengers, 
+                           &numPassengers, loggedInUserId); 
+                break; 
+            case 2: 
+                cancelTicket(buses, numBuses, passengers, 
+                             &numPassengers, 
+                             loggedInUserId); 
+                break; 
+            case 3: 
+                checkBusStatus(buses, numBuses); 
+                break; 
+            case 4: 
+                std::cout << "Cikis yapiliyor.\n"; 
+                loggedInUserId = -1; 
+                break; 
+            default: 
+                std::cout << "Gecersiz secim.Lutfen tekrar deneyin.\n"; 
+            } 
+        } 
+    } 
+  
+    return 0; 
+}*/
+/*
+------------------------------------------------------------------------------------------
+
+	/*
+   // Sample usage
+    Travel travelSystem;
+
+    // Adding sample trips
+    Trip trip1("CityA", "CityB", "2023-12-05", 50);
+    Trip trip2("CityB", "CityC", "2023-12-07", 30);
+
+    travelSystem.addTrip(trip1);
+    travelSystem.addTrip(trip2);
+
+    // User input (departure, arrival, date)
+    int opinion;
+    std::string departure, arrival, date;
+    std::cout << "Kalkis yeri gir: ";
+    std::cin >> departure;
+    std::cout << "Varis yeri gir: ";
+    std::cin >> arrival;
+    std::cout << "Seyahat tarihi gir (YYYY-MM-DD): ";
+    std::cin >> date;
+std::cout << "Seyahat turu gir (Bus-train-airplane): ";
+ std::cin >> opinion;
+    // Find available trips based on user input
+    std::vector<Trip> availableTrips = travelSystem.findAvailableTrips(departure, arrival, date,opinion);
+
+    // Display available trips
+    std::cout << "Uygun seferler:\n";
+    for (const auto& trip : availableTrips) {
+        travelSystem.displayAvailableSeats(trip);
+    }
+
+    // User selects a trip
+    int selectedTripIndex;
+    std::cout << "Rezerve etmek istediginiz seferin indexi: ";
+    std::cin >> selectedTripIndex;
+
+    // User input (number of seats)
+    int numSeats;
+    std::cout << "Rezerve etmek istediginiz koltuk sayisi: ";
+    std::cin >> numSeats;
+
+    // Reserve seats
+    if (selectedTripIndex >= 0 && selectedTripIndex < availableTrips.size()) {
+        travelSystem.reserveSeats(availableTrips[selectedTripIndex], numSeats);
+    } else {
+        std::cout << "Gecersiz sefer girisi.\n";
+    }
+*/
+
